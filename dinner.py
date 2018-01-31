@@ -33,14 +33,14 @@ favorite_list = [
     '鬍鬚張']
 
 
-def read_list_from_file():
+def read_fav_list():
     if len(sys.argv) > 1:
         with open(sys.argv[1], 'rU') as in_file:
             global favorite_list
-            favorite_list = in_file.read().split('\n')
+            favorite_list = [s.strip() for s in in_file.read().split('\n') if len(s.strip()) > 0]
 
-def print_favorite_list():
-    print 'Favorite list: ' + ', '.join(favorite_list)
+def print_fav_list():
+    print 'Favorite list: ' + ','.join(favorite_list) + '.'
 
 
 def login(s, user, passwd):
@@ -66,12 +66,14 @@ def make_order(s):
 
     selection = 0 # default selection
     for f, i in ((f, i) for f in favorite_list for i in range(all_items_len)):
+        # print 'f: %s, i: %s' % (f.decode('utf-8'), all_items[i][1])
         if f.decode('utf-8') in all_items[i][1]:
             selection = i
             print 'Favorite matched: %s (%s)' % (all_items[i][1], f.decode('utf-8'))
             break
     else:
         selection = random.randint(0, all_items_len - 1) # random selection
+        print 'No match, make it random: %d' % (selection + 1)
     print '(all_items_len=' + str(all_items_len) + ', selection=' + str(selection) + ')'
 
     order_url = server_url + '/OrderProcess.jsp?orderdate=' + time.strftime('%Y%m%d') + '&company=' + urllib.quote('不限訂廠商'.decode('utf8').encode('big5'))
@@ -95,10 +97,10 @@ def order_dinner(user, passwd):
 
         match = check_order(s)
         if match:
-            print 'You have ordered a Ban-Don today: ' + match.group(3)
+            print 'Already ordered a juicy Ban-Don for today: ' + match.group(3)
         else:
-            print 'Randomly ordered a Ban-Don for you today.'
-            print_favorite_list()
+            print 'Try ordering a Ban-Don for you...'
+            print_fav_list()
             make_order(s)
 
 
@@ -115,8 +117,8 @@ def main():
     time_end = datetime.time(14, 0, 0)
     str_time_avail = '(Available time: %s - %s, %s - %s)' % (calendar.day_abbr[day_start], calendar.day_abbr[day_end], time_start, time_end)
 
-    read_list_from_file()
-    print_favorite_list()
+    read_fav_list()
+    print_fav_list()
     print '\n' + str_time_avail + '\n'
 
     while True:
@@ -125,12 +127,12 @@ def main():
         print(time.strftime('[%Y-%m-%d %H:%M:%S]')),
         if day_start <= weekday <= day_end and time_start < time_now < time_end:
             try:
-                read_list_from_file()
+                read_fav_list()
                 order_dinner(user, passwd)
             except KeyboardInterrupt:
                 raise
-            except:
-                print 'crashed somehow, might be connection issue.'
+            except Exception as e:
+                print 'Crashed somehow, Exception: (' + str(e) + ')'
         else:
             print 'Not yet. ' + str_time_avail
         time.sleep(60 * 60) # 60 min
